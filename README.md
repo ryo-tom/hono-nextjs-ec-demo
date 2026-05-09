@@ -110,6 +110,15 @@ bun run --filter '*' dev
 - Frontend: <http://localhost:3000>
 - Backend API: <http://localhost:3001>
 
+## 🛠 Development Commands
+
+PostgreSQL へ接続する場合:
+
+```bash
+docker compose exec db psql -U postgres -d demo_app
+```
+
+
 ## 📝 Future Plans
 
 - 認証機能
