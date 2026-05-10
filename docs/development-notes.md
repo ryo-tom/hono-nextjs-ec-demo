@@ -54,6 +54,14 @@ dotenv.config({ path: "../../.env" }); // 追加
 // ...
 ```
 
+`prisma/schema.prisma`にモデルを定義する。
+
+次に、スキーマに基づいてデータベーステーブルを設定するための最初のマイグレーションを作成。
+
+```bash
+bunx --bun prisma migrate dev --name init
+```
+
 
 ## Docker
 
