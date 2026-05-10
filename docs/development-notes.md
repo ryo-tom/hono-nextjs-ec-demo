@@ -62,6 +62,24 @@ dotenv.config({ path: "../../.env" }); // 追加
 bunx --bun prisma migrate dev --name init
 ```
 
+以下のコマンドでPrisma Clientを作成する（outputに指定したパスに生成される）
+
+```bash
+bunx --bun prisma generate
+```
+
+次に、`apps/api/src/lib/prisma.ts`を作りPrisma Clientの共通化をする。
+
+```txt
+apps/api/
+├── src/
+│   ├── generated/
+│   ├── lib/
+│   │   └── prisma.ts // 追加
+│   └── index.ts
+```
+
+
 
 ## Docker
 

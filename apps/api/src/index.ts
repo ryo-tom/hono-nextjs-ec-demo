@@ -1,9 +1,12 @@
-import { Hono } from 'hono'
+import { Hono } from "hono";
+import { prisma } from "./lib/prisma";
 
-const app = new Hono()
+const app = new Hono();
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+app.get("/", async (c) => {
+  const categories = await prisma.category.findMany();
 
-export default app
+  return c.json(categories);
+});
+
+export default app;
