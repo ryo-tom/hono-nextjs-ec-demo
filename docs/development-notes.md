@@ -14,6 +14,13 @@ Next.jsインストール（apps/で実行）
 bun create next-app@latest web
 ```
 
+Prisma関連パッケージ追加（apps/api/で実行）
+
+```bash
+bun add prisma @types/pg --dev
+bun add @prisma/client @prisma/adapter-pg pg dotenv
+```
+
 ## Docker
 
 PostgreSQL コンテナを起動する。
