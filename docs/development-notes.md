@@ -85,6 +85,13 @@ apps/api/
 bun prisma migrate dev --name {name}
 ```
 
+ダミーデータの生成。
+`prisma/seed.ts`を作成し、`prisma.config.ts`にコマンドを追加したら次のコマンドでseedを実行。
+
+```bash
+bunx --bun prisma db seed
+```
+
 
 ## Docker
 
