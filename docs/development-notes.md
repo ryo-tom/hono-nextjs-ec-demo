@@ -92,6 +92,15 @@ bun prisma migrate dev --name {name}
 bunx --bun prisma db seed
 ```
 
+### shadcn/ui導入
+
+```bash
+# Run in apps/web/
+$ bunx --bun shadcn@latest init
+✔ Select a component library › Radix
+✔ Which preset would you like to use? › Nova
+```
+
 
 ## Docker
 
