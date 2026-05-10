@@ -8,6 +8,12 @@ Honoインストール（apps/で実行）
 bun create hono@latest api --template bun --install --pm bun
 ```
 
+Next.jsインストール（apps/で実行）
+
+```bash
+bun create next-app@latest web
+```
+
 ## Docker
 
 PostgreSQL コンテナを起動する。
