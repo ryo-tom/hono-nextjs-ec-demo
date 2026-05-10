@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { prisma } from "./lib/prisma";
+import adminUsers from "./routes/admin-users";
 import products from "./routes/products";
 
 const app = new Hono().basePath("/api");
@@ -21,7 +22,9 @@ const routes = app
     });
     return c.json(categories);
   })
-  .route("/products", products);
+  .route("/products", products)
+  .route("/admin-users", adminUsers);
+
 
 // RPC用に型をエクスポート
 export type AppType = typeof routes;
