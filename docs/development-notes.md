@@ -21,7 +21,7 @@ bun add prisma @types/pg --dev
 bun add @prisma/client @prisma/adapter-pg pg dotenv
 ```
 
-ESMとの互換性のために`tsconfig.json`を更新
+ESMとの互換性のために`tsconfig.json`と`package.json`を更新する
 
 Node.js型定義を追加する
 （tsconfigの警告解消。`types: ["node"]`を追加した時点で`@types/node`も必要になる）
