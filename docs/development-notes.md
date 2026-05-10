@@ -1,5 +1,13 @@
 # Development Notes
 
+## Introduction
+
+Honoインストール（apps/で実行）
+
+```bash
+bun create hono@latest api --template bun --install --pm bun
+```
+
 ## Docker
 
 PostgreSQL コンテナを起動する。
