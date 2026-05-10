@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { prisma } from "./lib/prisma";
 import adminUsers from "./routes/admin-users";
+import categories from "./routes/categories";
 import products from "./routes/products";
 
 const app = new Hono().basePath("/api");
@@ -16,15 +17,9 @@ app.get("/", async (c) => {
 
 // 商品ルート
 const routes = app
-  .get("/categories", async (c) => {
-    const categories = await prisma.category.findMany({
-      orderBy: { sortOrder: "asc" },
-    });
-    return c.json(categories);
-  })
+  .route("/categories", categories)
   .route("/products", products)
   .route("/admin-users", adminUsers);
-
 
 // RPC用に型をエクスポート
 export type AppType = typeof routes;
