@@ -1,7 +1,13 @@
 {
   "compilerOptions": {
-    "strict": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
+    "target": "ES2023", // 出力する JavaScript のバージョン
+    "module": "ESNext", // ESM を使用
+    "moduleResolution": "bundler", // bundler 向けの import 解決方式
+    "strict": true, // TypeScript の厳格モード
+    "esModuleInterop": true, // CommonJS との互換性向上
+    "ignoreDeprecations": "6.0", // TypeScript の警告を一部無効化
+    "jsx": "react-jsx", // JSX を使用
+    "jsxImportSource": "hono/jsx", // Hono の JSX runtime を使用
+    "types": ["node"] // Node.js の型定義を使用
   }
 }

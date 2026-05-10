@@ -21,6 +21,9 @@ bun add prisma @types/pg --dev
 bun add @prisma/client @prisma/adapter-pg pg dotenv
 ```
 
+ESMとの互換性のために`tsconfig.json`を更新
+
+
 ## Docker
 
 PostgreSQL コンテナを起動する。
