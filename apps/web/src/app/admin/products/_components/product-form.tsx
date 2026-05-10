@@ -12,64 +12,84 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageOff, Upload, X } from "lucide-react";
+import { client } from "@/lib/api-client";
+import type { InferResponseType } from "hono/client";
+import { ImageOff, Loader2, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const CATEGORIES = [
-  { value: "category_a", label: "カテゴリA" },
-  { value: "category_b", label: "カテゴリB" },
-  { value: "category_c", label: "カテゴリC" },
-  { value: "category_d", label: "カテゴリD" },
-];
+type ProductDetail = InferResponseType<
+  (typeof client.api.products)[":id"]["$get"],
+  200
+>;
+type CategoryList = InferResponseType<(typeof client.api.categories)["$get"]>;
 
-type ProductFormValues = {
-  name: string;
-  description: string;
-  price: string;
-  stock: string;
-  category: string;
-  published: boolean;
-  image_url: string | null;
-};
+type ProductFormProps =
+  | { mode: "new" }
+  | { mode: "edit"; product: ProductDetail };
 
-type ProductFormProps = {
-  mode: "new" | "edit";
-  defaultValues?: Partial<ProductFormValues>;
-};
-
-const DEFAULT: ProductFormValues = {
-  name: "",
-  description: "",
-  price: "",
-  stock: "",
-  category: "",
-  published: false,
-  image_url: null,
-};
-
-export function ProductForm({ mode, defaultValues }: ProductFormProps) {
+export function ProductForm(props: ProductFormProps) {
   const router = useRouter();
-  const [values, setValues] = useState<ProductFormValues>({
-    ...DEFAULT,
-    ...defaultValues,
-  });
-  const [errors, setErrors] = useState<Partial<Record<keyof ProductFormValues, string>>>({});
+
+  const defaultValues =
+    props.mode === "edit"
+      ? {
+          name: props.product.name,
+          description: props.product.description ?? "",
+          price: props.product.price?.toString() ?? "",
+          stock: props.product.stock?.toString() ?? "",
+          category_id: props.product.categoryId.toString(),
+          published: props.product.published,
+          image_url: props.product.images?.[0]?.imageUrl ?? null,
+        }
+      : {
+          name: "",
+          description: "",
+          price: "",
+          stock: "",
+          category_id: "",
+          published: false,
+          image_url: null as string | null,
+        };
+
+  const [values, setValues] = useState(defaultValues);
+  const [categories, setCategories] = useState<CategoryList>([]);
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const set = <K extends keyof ProductFormValues>(key: K, value: ProductFormValues[K]) => {
+  // カテゴリ一覧取得
+  useEffect(() => {
+    const load = async () => {
+      const res = await client.api.categories.$get();
+      if (res.ok) setCategories(await res.json());
+    };
+    load();
+  }, []);
+
+  const set = <K extends keyof typeof values>(
+    key: K,
+    value: (typeof values)[K],
+  ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   const validate = (): boolean => {
-    const next: typeof errors = {};
+    const next: Record<string, string> = {};
     if (!values.name.trim()) next.name = "商品名は必須です";
-    if (!values.price || isNaN(Number(values.price)) || Number(values.price) < 0)
+    if (
+      !values.price ||
+      isNaN(Number(values.price)) ||
+      Number(values.price) < 0
+    )
       next.price = "正しい価格を入力してください";
-    if (!values.stock || isNaN(Number(values.stock)) || Number(values.stock) < 0)
+    if (
+      !values.stock ||
+      isNaN(Number(values.stock)) ||
+      Number(values.stock) < 0
+    )
       next.stock = "正しい在庫数を入力してください";
-    if (!values.category) next.category = "カテゴリを選択してください";
+    if (!values.category_id) next.category_id = "カテゴリを選択してください";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -77,15 +97,42 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
   const handleSubmit = async () => {
     if (!validate()) return;
     setSubmitting(true);
-    // TODO: API接続後に差し替え
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitting(false);
-    router.push("/admin/products");
+
+    try {
+      const body = {
+        name: values.name,
+        description: values.description || undefined,
+        price: Number(values.price),
+        stock: Number(values.stock),
+        category_id: Number(values.category_id),
+        published: values.published,
+      };
+
+      if (props.mode === "new") {
+        const res = await client.api.products.$post({ json: body });
+        if (!res.ok) throw new Error("登録に失敗しました");
+      } else {
+        const res = await client.api.products[":id"].$patch({
+          param: { id: props.product.id.toString() },
+          json: body,
+        });
+        if (!res.ok) throw new Error("更新に失敗しました");
+      }
+
+      router.push("/admin/products");
+      router.refresh();
+    } catch (e) {
+      setErrors({
+        submit: e instanceof Error ? e.message : "エラーが発生しました",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      {/* 画像アップロード */}
+      {/* 画像 */}
       <section>
         <Label className="mb-2 block text-sm font-medium">商品画像</Label>
         <div className="flex items-start gap-4">
@@ -101,15 +148,7 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="w-fit"
-              onClick={() => {
-                // TODO: ファイルアップロード実装
-              }}
-            >
+            <Button type="button" variant="outline" size="sm" className="w-fit">
               <Upload size={14} className="mr-1.5" />
               画像を選択
             </Button>
@@ -136,7 +175,6 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
       <section className="space-y-4">
         <h2 className="text-sm font-semibold">基本情報</h2>
 
-        {/* 商品名 */}
         <div className="space-y-1.5">
           <Label htmlFor="name">
             商品名 <span className="text-destructive">*</span>
@@ -153,7 +191,6 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
           )}
         </div>
 
-        {/* 説明文 */}
         <div className="space-y-1.5">
           <Label htmlFor="description">説明文</Label>
           <Textarea
@@ -170,7 +207,6 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
       <section className="space-y-4">
         <h2 className="text-sm font-semibold">価格・在庫</h2>
         <div className="grid grid-cols-2 gap-4">
-          {/* 価格 */}
           <div className="space-y-1.5">
             <Label htmlFor="price">
               価格（円） <span className="text-destructive">*</span>
@@ -189,7 +225,6 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
             )}
           </div>
 
-          {/* 在庫数 */}
           <div className="space-y-1.5">
             <Label htmlFor="stock">
               在庫数 <span className="text-destructive">*</span>
@@ -214,32 +249,32 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
       <section className="space-y-4">
         <h2 className="text-sm font-semibold">カテゴリ・公開設定</h2>
 
-        {/* カテゴリ */}
         <div className="space-y-1.5">
           <Label>
             カテゴリ <span className="text-destructive">*</span>
           </Label>
           <Select
-            value={values.category}
-            onValueChange={(v) => set("category", v)}
+            value={values.category_id}
+            onValueChange={(v) => set("category_id", v)}
           >
-            <SelectTrigger className={errors.category ? "border-destructive" : ""}>
+            <SelectTrigger
+              className={errors.category_id ? "border-destructive" : ""}
+            >
               <SelectValue placeholder="カテゴリを選択" />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id.toString()}>
+                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {errors.category && (
-            <p className="text-xs text-destructive">{errors.category}</p>
+          {errors.category_id && (
+            <p className="text-xs text-destructive">{errors.category_id}</p>
           )}
         </div>
 
-        {/* 公開ステータス */}
         <div className="flex items-center justify-between rounded-lg border px-4 py-3">
           <div>
             <p className="text-sm font-medium">公開する</p>
@@ -254,21 +289,24 @@ export function ProductForm({ mode, defaultValues }: ProductFormProps) {
         </div>
       </section>
 
+      {/* エラー */}
+      {errors.submit && (
+        <p className="text-sm text-destructive">{errors.submit}</p>
+      )}
+
       {/* フッターアクション */}
       <div className="flex items-center justify-end gap-3 border-t pt-6">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.push("/admin/products")}
+          disabled={submitting}
         >
           キャンセル
         </Button>
         <Button onClick={handleSubmit} disabled={submitting}>
-          {submitting
-            ? "保存中..."
-            : mode === "new"
-            ? "商品を登録する"
-            : "変更を保存する"}
+          {submitting && <Loader2 size={14} className="mr-1.5 animate-spin" />}
+          {props.mode === "new" ? "商品を登録する" : "変更を保存する"}
         </Button>
       </div>
     </div>

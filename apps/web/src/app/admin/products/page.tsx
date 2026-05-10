@@ -1,5 +1,6 @@
 "use client";
 
+import { Header } from "@/app/admin/_components/header";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,85 +21,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { client } from "@/lib/api-client";
+import type { InferResponseType } from "hono/client";
 import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
   ImageOff,
+  Loader2,
   Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { Header } from "../_components/header";
+import { useEffect, useState } from "react";
 
-type Product = {
-  id: number;
-  name: string;
-  category: string;
-  price: number;
-  stock: number;
-  published: boolean;
-  created_at: string;
-  image_url: string | null;
-};
-
-type SortKey = keyof Pick<Product, "name" | "price" | "stock" | "created_at">;
+type Product = InferResponseType<typeof client.api.products[":id"]["$get"], 200>;
+type SortKey = "name" | "price" | "stock" | "createdAt";
 type SortDir = "asc" | "desc";
-
-const DUMMY: Product[] = [
-  {
-    id: 1,
-    name: "サンプル商品 α",
-    category: "カテゴリA",
-    price: 12800,
-    stock: 42,
-    published: true,
-    created_at: "2025-04-01",
-    image_url: null,
-  },
-  {
-    id: 2,
-    name: "サンプル商品 β",
-    category: "カテゴリB",
-    price: 5400,
-    stock: 8,
-    published: true,
-    created_at: "2025-04-05",
-    image_url: null,
-  },
-  {
-    id: 3,
-    name: "サンプル商品 γ",
-    category: "カテゴリA",
-    price: 32000,
-    stock: 0,
-    published: false,
-    created_at: "2025-04-10",
-    image_url: null,
-  },
-  {
-    id: 4,
-    name: "サンプル商品 δ",
-    category: "カテゴリC",
-    price: 9800,
-    stock: 15,
-    published: true,
-    created_at: "2025-04-18",
-    image_url: null,
-  },
-  {
-    id: 5,
-    name: "サンプル商品 ε",
-    category: "カテゴリD",
-    price: 2200,
-    stock: 99,
-    published: false,
-    created_at: "2025-04-22",
-    image_url: null,
-  },
-];
 
 function SortIcon({
   columnKey,
@@ -119,10 +59,30 @@ function SortIcon({
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>(DUMMY);
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await client.api.products.$get();
+        if (!res.ok) throw new Error("取得に失敗しました");
+        setProducts(await res.json());
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -134,17 +94,48 @@ export default function ProductsPage() {
   };
 
   const sorted = [...products].sort((a, b) => {
-    const av = a[sortKey];
-    const bv = b[sortKey];
+    const av = a[sortKey] ?? "";
+    const bv = b[sortKey] ?? "";
     const cmp = av < bv ? -1 : av > bv ? 1 : 0;
     return sortDir === "asc" ? cmp : -cmp;
   });
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-    setDeleteTarget(null);
+    try {
+      const res = await client.api.products[":id"].$delete({
+        param: { id: deleteTarget.id.toString() },
+      });
+      if (!res.ok) throw new Error("削除に失敗しました");
+      setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setDeleteTarget(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <>
+        <Header title="商品管理" />
+        <main className="flex flex-1 items-center justify-center">
+          <Loader2 size={24} className="animate-spin text-muted-foreground" />
+        </main>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Header title="商品管理" />
+        <main className="flex flex-1 items-center justify-center">
+          <p className="text-sm text-destructive">{error}</p>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -212,12 +203,12 @@ export default function ProductsPage() {
                 </TableHead>
                 <TableHead className="hidden lg:table-cell">
                   <button
-                    onClick={() => handleSort("created_at")}
+                    onClick={() => handleSort("createdAt")}
                     className="flex items-center text-xs font-medium hover:text-foreground"
                   >
                     作成日
                     <SortIcon
-                      columnKey="created_at"
+                      columnKey="createdAt"
                       sortKey={sortKey}
                       sortDir={sortDir}
                     />
@@ -227,103 +218,119 @@ export default function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sorted.map((product) => (
-                <TableRow key={product.id}>
-                  {/* 画像 */}
-                  <TableCell>
-                    <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="h-10 w-10 rounded-md object-cover"
-                        />
-                      ) : (
-                        <ImageOff size={14} className="text-muted-foreground" />
-                      )}
-                    </div>
-                  </TableCell>
+              {sorted.map((product) => {
+                const image = product.images?.[0] ?? null;
+                const createdAt = new Date(
+                  product.createdAt,
+                ).toLocaleDateString("ja-JP");
 
-                  {/* 商品名 */}
-                  <TableCell className="font-medium text-sm">
-                    {product.name}
-                    {/* モバイルでカテゴリ・ステータスを補完 */}
-                    <div className="mt-0.5 flex items-center gap-2 md:hidden">
-                      <span className="text-xs text-muted-foreground">
-                        {product.category}
+                return (
+                  <TableRow key={product.id}>
+                    {/* 画像 */}
+                    <TableCell>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted">
+                        {image ? (
+                          <img
+                            src={image.imageUrl}
+                            alt={image.altText ?? product.name}
+                            className="h-10 w-10 rounded-md object-cover"
+                          />
+                        ) : (
+                          <ImageOff
+                            size={14}
+                            className="text-muted-foreground"
+                          />
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* 商品名 */}
+                    <TableCell className="text-sm font-medium">
+                      {product.name}
+                      <div className="mt-0.5 flex items-center gap-2 md:hidden">
+                        <span className="text-xs text-muted-foreground">
+                          {product.category.name}
+                        </span>
+                        <Badge
+                          variant={product.published ? "default" : "secondary"}
+                          className="text-[10px]"
+                        >
+                          {product.published ? "公開" : "非公開"}
+                        </Badge>
+                      </div>
+                    </TableCell>
+
+                    {/* カテゴリ */}
+                    <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
+                      {product.category.name}
+                    </TableCell>
+
+                    {/* 価格 */}
+                    <TableCell className="text-sm">
+                      {product.price != null
+                        ? `¥${product.price.toLocaleString()}`
+                        : "-"}
+                    </TableCell>
+
+                    {/* 在庫 */}
+                    <TableCell className="hidden text-sm lg:table-cell">
+                      <span
+                        className={
+                          product.stock === 0
+                            ? "font-medium text-destructive"
+                            : ""
+                        }
+                      >
+                        {product.stock ?? "-"}
                       </span>
+                    </TableCell>
+
+                    {/* ステータス */}
+                    <TableCell className="hidden md:table-cell">
                       <Badge
                         variant={product.published ? "default" : "secondary"}
                         className="text-[10px]"
                       >
                         {product.published ? "公開" : "非公開"}
                       </Badge>
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  {/* カテゴリ */}
-                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                    {product.category}
-                  </TableCell>
+                    {/* 作成日 */}
+                    <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
+                      {createdAt}
+                    </TableCell>
 
-                  {/* 価格 */}
-                  <TableCell className="text-sm">
-                    ¥{product.price.toLocaleString()}
-                  </TableCell>
-
-                  {/* 在庫 */}
-                  <TableCell className="hidden lg:table-cell text-sm">
-                    <span
-                      className={
-                        product.stock === 0
-                          ? "text-destructive font-medium"
-                          : ""
-                      }
-                    >
-                      {product.stock}
-                    </span>
-                  </TableCell>
-
-                  {/* ステータス */}
-                  <TableCell className="hidden md:table-cell">
-                    <Badge
-                      variant={product.published ? "default" : "secondary"}
-                      className="text-[10px]"
-                    >
-                      {product.published ? "公開" : "非公開"}
-                    </Badge>
-                  </TableCell>
-
-                  {/* 作成日 */}
-                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                    {product.created_at}
-                  </TableCell>
-
-                  {/* アクション */}
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        asChild
-                      >
-                        <Link href={`/admin/products/${product.id}/edit`}>
-                          <Pencil size={14} />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(product)}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    {/* アクション */}
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          asChild
+                        >
+                          <Link href={`/admin/products/${product.id}/edit`}>
+                            <Pencil size={14} />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() =>
+                            setDeleteTarget({
+                              id: product.id,
+                              name: product.name,
+                            })
+                          }
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
 
               {sorted.length === 0 && (
                 <TableRow>
