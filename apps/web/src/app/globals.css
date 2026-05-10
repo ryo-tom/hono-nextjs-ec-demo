@@ -5,9 +5,6 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* フォント — layout.tsx で読み込んだ Noto Sans JP を参照 */
-  --font-sans:          var(--font-sans);
-
   /* カラーパレット */
   --color-ink:          #111827;
   --color-ink-sub:      #6b7280;

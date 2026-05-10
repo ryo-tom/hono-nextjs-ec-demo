@@ -1,14 +1,13 @@
-import type { Metadata } from "next";
-import { Noto_Sans_JP, Geist } from "next/font/google";
-import "./globals.css";
 import { cn } from "@/lib/utils";
+import type { Metadata } from "next";
+import { Geist } from "next/font/google";
+import "./globals.css";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "ShopDemo | ECサイト デモ",
-  description:
-    "Next.js + Hono + Prisma で構築した汎用 EC デモサイト",
+  description: "Next.js + Hono + Prisma で構築した汎用 EC デモサイト",
   robots: { index: false, follow: false },
 };
 
