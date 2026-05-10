@@ -79,6 +79,11 @@ apps/api/
 │   └── index.ts
 ```
 
+スキーマ変更時には再度マイグレーションを実行
+
+```bash
+bun prisma migrate dev --name {name}
+```
 
 
 ## Docker
