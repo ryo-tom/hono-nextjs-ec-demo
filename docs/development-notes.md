@@ -23,11 +23,35 @@ bun add @prisma/client @prisma/adapter-pg pg dotenv
 
 ESMとの互換性のために`tsconfig.json`と`package.json`を更新する
 
-Node.js型定義を追加する
+Node.js型定義を追加する（apps/api/で実行）
 （tsconfigの警告解消。`types: ["node"]`を追加した時点で`@types/node`も必要になる）
 
 ```bash
 bun add -d @types/node
+```
+
+Prisma Schema ファイルを生成する（apps/api/で実行）
+
+```bash
+bunx --bun prisma init \
+  --datasource-provider postgresql \
+  --output ../src/generated/prisma
+```
+
+- `--output <path>` は `prisma/schema.prisma` の `generator client` の `output` に記載される
+- `output` は後から `schema.prisma` を直接編集して変更できる
+- Prisma Client は `output` で指定したパスに生成される
+- generated code を `src` 配下に置くと import を整理しやすい
+
+`prisma.config.ts`の環境変数を`apps/api/.env`ではなくルートの`.env`から読み込むようにする
+
+```ts
+import dotenv from "dotenv";  // 追加
+import { defineConfig, env } from "prisma/config";
+
+dotenv.config({ path: "../../.env" }); // 追加
+
+// ...
 ```
 
 
