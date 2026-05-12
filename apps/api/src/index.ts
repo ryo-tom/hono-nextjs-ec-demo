@@ -1,27 +1,30 @@
 import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
-import { prisma } from "./lib/prisma";
 import adminUsers from "./routes/admin-users";
 import categories from "./routes/categories";
+import productImages from "./routes/product-images";
 import products from "./routes/products";
 
-const app = new Hono().basePath("/api");
+const app = new Hono();
+const apiApp = new Hono();
 
-app.use(cors({ origin: "http://localhost:3000" }));
+// Static file serving
+app.use("/uploads/*", serveStatic({ root: "./public" }));
 
-// 既存ルート
-app.get("/", async (c) => {
-  const categories = await prisma.category.findMany();
-  return c.json(categories);
-});
+// Middleware
+apiApp.use(cors({ origin: "http://localhost:3000" }));
 
-// 商品ルート
-const routes = app
+// Routes
+const apiRoutes = apiApp
   .route("/categories", categories)
   .route("/products", products)
+  .route("/products/:productId/images", productImages)
   .route("/admin-users", adminUsers);
 
-// RPC用に型をエクスポート
+// Mount
+const routes = app.route("/api", apiRoutes);
+
 export type AppType = typeof routes;
 
 export default {

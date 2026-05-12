@@ -10,11 +10,10 @@ import {
 import { cn } from "@/lib/utils";
 import {
   ExternalLink,
-  ImageIcon,
   LayoutDashboard,
   Package,
   Settings,
-  Tag,
+  Tag
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,7 +22,6 @@ const navItems = [
   { label: "ダッシュボード", href: "/admin", icon: LayoutDashboard },
   { label: "商品管理", href: "/admin/products", icon: Package },
   { label: "カテゴリ管理", href: "/admin/categories", icon: Tag },
-  { label: "画像管理", href: "/admin/images", icon: ImageIcon },
 ];
 
 const bottomItems = [
