@@ -118,6 +118,19 @@ PostgreSQL へ接続する場合:
 docker compose exec db psql -U postgres -d demo_app
 ```
 
+## 🧑‍💻 Developers Guide
+
+### Frontend Naming Conventions
+
+| 種類 | 命名規則 | 例 |
+|------|----------|-----|
+| `app/` 配下のルーティングディレクトリ | `kebab-case` | `user-profile/`, `product-images/` |
+| 動的ルート | `[camelCase]` | `[productId]/`, `[categoryId]/` |
+| React コンポーネント | `PascalCase` | `UserCard.tsx`, `SearchForm.tsx` |
+| React コンポーネント以外の TypeScript ファイル | `camelCase` | `fetchUser.ts`, `productSchema.ts` |
+| その他のディレクトリ | `kebab-case` | `admin-users/`, `product-images/` |
+| `components/ui/` 配下 | shadcn/ui の命名規則に従う | `button.tsx`, `dialog.tsx` |
+
 
 ## 📝 Future Plans
 
